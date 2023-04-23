@@ -1,13 +1,48 @@
 const express = require("express");
 const Post = require("../schemas/post");
 const Comment = require("../schemas/comment");
+const cookieParser = require("cookie-parser");
 const router = express.Router({ mergeParams: true });
+router.use(cookieParser());
 
+
+
+router.post("/signup", async (req, res) => {
+  const { username, password, email } = req.body;
+  try {
+    const user = await User.create({
+      username: username,
+      password: password,
+      email: email,
+    });
+    return res.json({ message: "회원가입이 완료되었습니다." });
+  } catch (err) {
+    return res.status(400).json({ message: "회원가입에 실패하였습니다." });
+  }
+});
+
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const user = await User.findOne({ username: username, password: password });
+    if (!user) {
+      return res.status(400).json({ message: "로그인에 실패하였습니다." });
+    }
+    res.cookie("loggedIn", true); 
+    return res.json({ message: "로그인에 성공하였습니다." });
+  } catch (err) {
+    return res.status(400).json({ message: "로그인에 실패하였습니다." });
+  }
+});
 
 
 router.post("/", async (req, res) => {
   const { user, password, content } = req.body;
   const { _postId } = req.params;
+
+  if (!req.cookies.loggedIn) {
+    return res.status(401).json({ message: "로그인이 필요합니다." });
+  }
 
   if (_postId.length !== 24) {
     return res.status(400).json({ message: "데이터 형식이 올바르지 않습니다" });
@@ -27,6 +62,11 @@ router.post("/", async (req, res) => {
 
   try {
     const checkPost = await Post.findById({ _id: _postId });
+
+    if (!req.cookies.loggedIn) {
+      return res.status(401).json({ message: "로그인이 필요합니다." });
+    }
+
     if (!checkPost) {
       return res.status(400).json({ message: "게시글이 없습니다!" });
     }
@@ -46,6 +86,10 @@ router.post("/", async (req, res) => {
 
 router.get("/", async (req, res) => {
   const { _postId } = req.params;
+
+  if (!req.cookies.loggedIn) {
+    return res.status(401).json({ message: "로그인이 필요합니다." });
+  }
 
   if (_postId.length !== 24) {
     return res.status(400).json({ message: "데이터 형식이 올바르지 않습니다" });
@@ -78,6 +122,10 @@ router.put("/:_commentId", async (req, res) => {
   const { _postId, _commentId } = req.params;
   const { password, content } = req.body;
 
+  if (!req.cookies.loggedIn) {
+    return res.status(401).json({ message: "로그인이 필요합니다." });
+  }
+
   if (_postId.length !== 24 || _commentId.length !== 24) {
     return res
       .status(400)
@@ -97,6 +145,10 @@ router.put("/:_commentId", async (req, res) => {
       _id: _commentId,
       postId: _postId,
     });
+
+    if (!req.cookies.loggedIn) {
+      return res.status(401).json({ message: "로그인이 필요합니다." });
+    }
 
     if (!getComment) {
       return res.status(404).json({ message: "댓글 조회에 실패하였습니다." });
@@ -126,6 +178,10 @@ router.delete("/:_commentId", async (req, res) => {
     return res
       .status(400)
       .json({ message: "데이터 형식이 올바르지 않습니다1" });
+  }
+
+  if (!req.cookies.loggedIn) {
+    return res.status(401).json({ message: "로그인이 필요합니다." });
   }
 
   if (!password || typeof password !== "string") {
