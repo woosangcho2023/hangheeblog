@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 //express 모듈을 불러와 app 객체 생성하기
-const port = 3500;
+const port = 3600;
 //포트 설정
 const routes = require("./routes/index");
 //인덱스 파일 불러오기

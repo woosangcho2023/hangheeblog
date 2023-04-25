@@ -43,6 +43,7 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "닉네임 또는 패스워드를 확인해주세요." });
     }
     res.cookie("loggedIn", true); 
+    res.cookie("user_id", user._id);
     return res.json({ message: "로그인에 성공하였습니다." });
   } catch (err) {
     return res.status(400).json({ message: "로그인에 실패하였습니다." });
@@ -89,6 +90,7 @@ router.post("/", async (req, res) => {
       user: user,
       password: password,
       content: content,
+      createdBy: req.cookies.user_id 
     });
     return res.json({ message: "댓글을 생성하였습니다" });
   } catch (err) {
@@ -104,6 +106,7 @@ router.get("/", async (req, res) => {
   if (!req.cookies.loggedIn) {
     return res.status(401).json({ message: "로그인이 필요합니다." });
   }
+  
 
   if (_postId.length !== 24) {
     return res.status(400).json({ message: "데이터 형식이 올바르지 않습니다" });
@@ -135,9 +138,19 @@ router.get("/", async (req, res) => {
 router.put("/:_commentId", async (req, res) => {
   const { _postId, _commentId } = req.params;
   const { password, content } = req.body;
+  const loggedInUserId = req.cookies.user_id;
+  const comment = await Comment.findById(_commentId);
+const post = await Post.findById(_postId);
+const author = comment ? comment.createdBy : post.createdBy;
+
 
   if (!req.cookies.loggedIn) {
     return res.status(401).json({ message: "로그인이 필요합니다." });
+  }
+  if (loggedInUserId !== author.toString()) {
+    return res
+      .status(403)
+      .json({ message: "수정 권한이 없습니다." });
   }
 
   if (_postId.length !== 24 || _commentId.length !== 24) {
@@ -187,6 +200,10 @@ router.put("/:_commentId", async (req, res) => {
 router.delete("/:_commentId", async (req, res) => {
   const { _postId, _commentId } = req.params;
   const { password } = req.body;
+  const loggedInUserId = req.cookies.user_id;
+  const comment = await Comment.findById(_commentId);
+const post = await Post.findById(_postId);
+const author = comment ? comment.createdBy : post.createdBy;
 
   if (_postId.length !== 24 || _commentId.length !== 24) {
     return res
@@ -196,6 +213,11 @@ router.delete("/:_commentId", async (req, res) => {
 
   if (!req.cookies.loggedIn) {
     return res.status(401).json({ message: "로그인이 필요합니다." });
+  }
+  if (loggedInUserId !== author.toString()) {
+    return res
+      .status(403)
+      .json({ message: "수정 권한이 없습니다." });
   }
 
   if (!password || typeof password !== "string") {
