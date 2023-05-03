@@ -9,7 +9,7 @@ const signupRouter = require("./signup");
 
 router.use("/posts", postsRouter);
 router.use("/posts/:_postId/comments", commentsRouter);
-router.use("/delete", deleteRouter);
+router.use("/:_commentId", deleteRouter);
 router.use("/login", loginRouter); 
 router.use("/signup", signupRouter); 
 
